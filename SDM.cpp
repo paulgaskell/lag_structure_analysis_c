@@ -2,106 +2,152 @@
 
 #include <iostream>
 #include <random>
+#include <cmath>
 
 //#include <iomanip>
-//#include <cmath>
 //#include <fstream>
 
+// global max dimensions 
+const int MAX_LEN = 5000;
+const int MAX_WIDTH = 500;
+const unsigned int SEED = 4;
+
+/**
+manipulating coordinates in 1 and 2 d 
+**/
+class Coordinates {
+    public:
+        //calculate 1d array coordinates from 2d ref  
+        int idx(int r, int c, int lag) {
+            return (r*lag)+c;
+        }
+        //calculate row from 1d ref
+        int row(int i, int lag) {
+            return i/lag;
+        }
+        //calculate col from 1d ref
+        int col(int i, int lag) {
+            return i-(lag*(i/lag));
+        }
+};
+
+/**
+probability function for the distribution over the distances 
+between x ad y
+**/
+double Pr(double x, double y) {
+    double z = pow(x-y, 2);
+    z = exp(-z);
+    return z;
+}
 
 /**
 class for generating pairs of test time series 
 **/
-class TestData {
-    private:
-        unsigned int seed;
-        int N;
-
-    public:
-        TestData(unsigned int, int);
-        std::vector<double> x;
-        std::vector<double> y;
-
-        // get the base random series 
-        std::vector<double> generate_base_series(double mu, double sig) {
-            std::default_random_engine generator(seed);
-            std::normal_distribution<double> distribution(mu, sig);
-            std::vector<double> time_series(N);
-            double k;
-            
-            for (int i = 0; i < N; i++) {
-                k = distribution(generator);
-                time_series[i] = k;
-            }
-            return time_series;
-        }
-
-        // get the lagged/leading series 
-        std::vector<double> generate_comp_series(double mu, double sig) {
-            std::vector<double> error = generate_base_series(mu, sig);
-            std::vector<double> time_series(N);
-            double k;
-            
-            for (int i = 0; i< N; i++) {
-                time_series[i] = k+x[i];
-            }
-            return time_series; 
-        }
-    
-};
-
-/**
-constructor for init TestData
-**/
-TestData::TestData(unsigned int s, int n) {
-    seed = s;
-    N = n;
-}
-
-
-/**
-SDM
-**/
 class SDM {
     private:
         int N;
-        std::vector<double> x;
-        std::vector<double> y;  
+
     public:
-        SDM(std::vector<double>, std::vector<double>, int);
-            
-        std::vector<double> run(int lag) {
-            int t = lag;
-            for (t; t < N; t++) {
-                std::cout << t << std::endl;
+        // constructor 
+        SDM(int);
+        // destructor 
+        ~SDM() { delete x; delete y; delete W; };
+        double* x = new double[MAX_LEN];
+        double* y = new double[MAX_LEN];
+        double* W = new double[MAX_LEN*MAX_WIDTH];
+
+        // generate test series 
+        void generate_series(double mu, double sig, double err) {
+            std::default_random_engine generator(SEED);
+            std::normal_distribution<double> distribution(mu, sig);
+            std::normal_distribution<double> error(0, err);
+            double u;
+            double k;  
+                    
+            for (int i = 0; i < N; i++) {
+                k = distribution(generator);
+                u = error(generator);
+                y[i] = k;
+                if (i < 5) {
+                    x[i] = k+u;
+                } else {
+                    x[i-5] = k+u;
+                }
             }
-            return x;
-        }            
+        }
         
-    
+        void run(int lag) {
+            Coordinates C;
+
+            // W to ones 
+            for (int i = 0; i <= C.idx(N, lag, lag); i++) {
+                W[i] = 1;
+            }
+
+            for (int i = lag; i <= N; i++) {
+                // convert the row into probabilities and sum total prob 
+                double total_prob = 0;
+                for (int j = 0; j <= lag; j++) {
+                    W[C.idx(i, j, lag)] = (Pr(y[i], x[i-j])+0.0001)*W[C.idx(i-1, j, lag)];
+                    total_prob += W[C.idx(i, j, lag)];
+                }
+
+                // divide by total prob
+                for (int j = 0; j <= lag; j++) {
+                    W[C.idx(i, j, lag)] = W[C.idx(i, j, lag)]/total_prob;
+                }
+            }
+        }
+          
+
+        void argmax(int startN, int endN, int lag) {
+            Coordinates C;
+            double agmx = 0;
+            int agmx_i = 0;
+            for (int i = startN; i < endN; i++) {
+                if (C.col(i, lag) == 0) {
+                    std::cout <<
+                        i << ' ' << C.row(i, lag) << ' ' << C.col(i, lag) << ' ' <<
+                        agmx << ' ' << agmx_i << ' ' << 
+                        C.row(agmx_i, lag) << ' ' << C.col(agmx_i, lag) << 
+                    std::endl;
+
+                    agmx = W[i];
+                    agmx_i = i;
+                };
+                
+                if (agmx < W[i]) {
+                    agmx = W[i];
+                    agmx_i = i;
+                };
+                
+            }
+
+        }
+        
 };
 
 /**
 constructor for init SDM
 **/
-SDM::SDM(std::vector<double> inp_x, std::vector<double> inp_y, int n) {
+SDM::SDM(int n) {
     N = n;
-    x = inp_x;
-    y = inp_y;
 }
 
 int main() {
     int N = 30;
-    unsigned int seed = 2;
-    TestData data(seed, N);
-    data.x = data.generate_base_series(0, 1);
-    data.y = data.generate_comp_series(0, 1);
+    int lag = 20;
+    double mu = 0;
+    double sig = 1;
+    double err = 0.01;
+    Coordinates C;
     
-    SDM sdm(data.x, data.y, N);
+    SDM sdm(N);
+    sdm.generate_series(mu, sig, err);
+    sdm.run(lag);
+    sdm.argmax(C.idx(19, 0, lag), N*lag, lag);
     
-    std::cout << "hello" << std::endl;
-    for (int i=0; i<N; i++) {
-        std::cout << data.x[i] << std::endl;
-    }
     
     return 0;
     
