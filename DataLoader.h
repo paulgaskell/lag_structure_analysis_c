@@ -5,32 +5,28 @@
 #include <sstream>
 #include <ctime>
 
-/**
-class Constants {
-    public:
-        const int MAX_LEN = 5000;
-        const int MAX_WIDTH = 500;
-        const unsigned int SEED = 1;
-        const double PI = 3.14159265359;
-};
-**/
-
-tm string_to_tm(std::string str) {
+tm string_to_tm(std::string str) 
+{
     struct tm date;
     int pos = 0;
     int start = 0;
     int val;
     
-    for (int i = 0; i <= str.size(); i++) {
-        if (str[i] == '-' || i == str.size()) {
+    for (int i = 0; i <= str.size(); i++) 
+    {
+        if (str[i] == '-' || i == str.size()) 
+        {
             // atoi is a standard func for converting string to int 
             val = atoi(str.substr(start, i-start).c_str());
             
-            if (pos == 0) {
+            if (pos == 0) 
+            {
                 date.tm_year = val-1900;
-            } else if (pos == 1) {
+            } else if (pos == 1) 
+            {
                 date.tm_mon = val-1;
-            } else if (pos == 2) {
+            } else if (pos == 2) 
+            {
                 date.tm_mday = val;
             }
             
@@ -41,20 +37,36 @@ tm string_to_tm(std::string str) {
     return date;
 }
 
-
-class Tseries {
-    
+class Tseries 
+{    
     public:        
-        
-        const int MAX_LEN = 5000;
-        struct tm* dates //= new tm[MAX_LEN];
-        double* vals //= new double[MAX_LEN];
-        int length;
-    
-        //constructor 
-        Tseries(int colnum, std::string filename, int max_len) : 
-            dates(new dates[max_len]), vals(new vals[max_len]) {
             
+        //constructor 
+        Tseries(const int max_len_, int colnum_, std::string filename_)
+        {
+            max_len = max_len_;
+            colnum = colnum_;
+            filename = filename_;
+        }
+ 
+        // destructor 
+        ~Tseries() 
+        { 
+            delete[] dates;
+            delete[] vals;
+            std::cout << "tseries destructor" << std::endl;
+        }  
+        
+        // attrs
+        struct tm* dates = new struct tm[max_len];
+        double* vals = new double[max_len];
+        int length;
+        int max_len;
+        int colnum;
+        std::string filename;
+        
+        void get_data()
+        {   
             struct tm date;
             
             std::string line;
@@ -63,23 +75,29 @@ class Tseries {
             std::string val;
             int filled = 0; // how many slots have we filled
             
-            while(getline(infile, line) && filled <= MAX_LEN) {
+            while(getline(infile, line) && filled <= max_len) 
+            {
                 int start = 0;
                 int pos = 0;
                 bool marker = 0;
-                for(int i = 0; i <= line.size(); i++) {            
-                    if (line[i] == ',' || i == line.size()) { 
+                for(int i = 0; i <= line.size(); i++) 
+                {            
+                    if (line[i] == ',' || i == line.size()) 
+                    { 
                         val = line.substr(start, i-start);
                         
-                        if (pos == 0) {
+                        if (pos == 0) 
+                        {
                             date = string_to_tm(val);
-                            if (date.tm_year > 100) {
+                            if (date.tm_year > 100) 
+                            {
                                 dates[filled] = date;
                                 marker = 1;
                             }
                         }
                         
-                        if (pos == colnum && marker == 1) {
+                        if (pos == colnum && marker == 1) 
+                        {
                             // stod string to double function from std::string 
                             vals[filled] = stod(val);
                             filled++; // increment filled here when op is complete 
@@ -91,17 +109,11 @@ class Tseries {
                 }   
             }
             
+            //length = filled;
+            std::cout << "here" << std::endl;
+            std::cout << filled << std::endl;
+            infile.close();      
             length = filled;
-            
-            std::cout << length << std::endl;
-            infile.close();                    
         }
-        
-        ~Tseries() { 
-            delete[] dates;
-            delete[] vals;
-            std::cout << "tseries destructor" << std::endl;
-        }  
-        
 };
 
