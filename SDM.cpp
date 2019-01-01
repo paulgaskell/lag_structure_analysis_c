@@ -13,6 +13,8 @@ TODO:
     
 **/
 
+
+#include "Constants.h"
 #include "SDM.h"
 //#include "DataLoader.h"
 
@@ -27,6 +29,7 @@ int main() {
     double sig = 1;
     double err = 0.5;
     Coordinates C;
+    Constants Const;
     
     SDM sdm(N, lag);
     //sdm.x = ibm_p;

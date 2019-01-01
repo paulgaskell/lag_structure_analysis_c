@@ -5,7 +5,15 @@
 #include <sstream>
 #include <ctime>
 
-#include "Constants.h"
+/**
+class Constants {
+    public:
+        const int MAX_LEN = 5000;
+        const int MAX_WIDTH = 500;
+        const unsigned int SEED = 1;
+        const double PI = 3.14159265359;
+};
+**/
 
 tm string_to_tm(std::string str) {
     struct tm date;
@@ -34,16 +42,19 @@ tm string_to_tm(std::string str) {
 }
 
 
-class Tseries : public Constants {
+class Tseries {
     
-    public:
-        struct tm* dates = new tm[MAX_LEN];
-        double* vals = new double[MAX_LEN];
+    public:        
+        
+        const int MAX_LEN = 5000;
+        struct tm* dates //= new tm[MAX_LEN];
+        double* vals //= new double[MAX_LEN];
         int length;
-        
-        //struct Constants C;
-        
-        Tseries(int colnum, std::string filename) {
+    
+        //constructor 
+        Tseries(int colnum, std::string filename, int max_len) : 
+            dates(new dates[max_len]), vals(new vals[max_len]) {
+            
             struct tm date;
             
             std::string line;
@@ -85,7 +96,6 @@ class Tseries : public Constants {
             std::cout << length << std::endl;
             infile.close();                    
         }
-        
         
         ~Tseries() { 
             delete[] dates;

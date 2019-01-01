@@ -3,8 +3,6 @@
 #include <random>
 #include <cmath>
 
-#include "Constants.h"
-
 class Coordinates {
     /**
     manipulating coordinates in 1 and 2 d 
@@ -32,7 +30,7 @@ double lin(double x) {
     return 4+5*x;
 }
 
-class Regression : public Constants {
+class Regression {
     /** 
     regress 2 vectors x and y
     **/
@@ -78,7 +76,7 @@ class Regression : public Constants {
         }  
 };
 
-class SDM : public Coordinates, Constants {
+class SDM : public Coordinates {
     /**
     x and y series run 0-N
     W and fcst_x filled lag-N
